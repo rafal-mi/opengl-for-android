@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,6 +39,8 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainContent() {
+    val context = LocalContext.current
+
     Column(modifier = Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
@@ -58,7 +61,7 @@ fun MainContent() {
             factory = {
                 GLSurfaceView(it).apply {
                     setEGLContextClientVersion(2)
-                    setRenderer(AirHockeyRenderer())
+                    setRenderer(AirHockeyRenderer(context))
                 }
             }
         )
