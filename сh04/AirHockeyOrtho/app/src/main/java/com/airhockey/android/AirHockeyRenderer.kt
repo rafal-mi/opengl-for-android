@@ -4,6 +4,7 @@ import android.content.Context
 import android.opengl.GLES20
 import android.opengl.GLES20.*
 import android.opengl.GLSurfaceView.Renderer
+import android.opengl.Matrix.orthoM
 import com.airhockey.android.util.LoggerConfig
 import com.airhockey.android.util.ShaderHelper
 import com.airhockey.android.util.TextResourceReader
@@ -15,10 +16,12 @@ import javax.microedition.khronos.opengles.GL10
 
 class AirHockeyRenderer(private val context: Context) : Renderer {
     var vertexData: FloatBuffer? = null
+    private var projectionMatrix = FloatArray(16)
     private var program = -1
     // private var uColorLocation = -1
     private var aPositionLocation = -1
     private var aColorLocation = -1
+    private var uMatrixLocation = -1
 
     init {
         val tableVerticesWithTriangles = floatArrayOf(
@@ -26,11 +29,11 @@ class AirHockeyRenderer(private val context: Context) : Renderer {
 
             // Triangle Fan
             0f,    0f,   1f,   1f,   1f,
-            -0.5f, -0.5f, 0.7f, 0.7f, 0.7f,
-            0.5f, -0.5f, 0.7f, 0.7f, 0.7f,
-            0.5f,  0.5f, 0.7f, 0.7f, 0.7f,
-            -0.5f,  0.5f, 0.7f, 0.7f, 0.7f,
-            -0.5f, -0.5f, 0.7f, 0.7f, 0.7f,
+            -0.5f, -0.8f, 0.7f, 0.7f, 0.7f,
+            0.5f, -0.8f, 0.7f, 0.7f, 0.7f,
+            0.5f,  0.8f, 0.7f, 0.7f, 0.7f,
+            -0.5f,  0.8f, 0.7f, 0.7f, 0.7f,
+            -0.5f, -0.8f, 0.7f, 0.7f, 0.7f,
 
             // Line 1
             -0.5f, 0f, 1f, 0f, 0f,
@@ -70,6 +73,7 @@ class AirHockeyRenderer(private val context: Context) : Renderer {
 
         aPositionLocation = glGetAttribLocation(program, A_POSITION)
         aColorLocation = glGetAttribLocation(program, A_COLOR)
+        uMatrixLocation = glGetUniformLocation(program, U_MATRIX)
 
         vertexData!!.position(0)
         glVertexAttribPointer(aPositionLocation, POSITION_COMPONENT_COUNT, GL_FLOAT,
@@ -86,13 +90,24 @@ class AirHockeyRenderer(private val context: Context) : Renderer {
 
     override fun onSurfaceChanged(glUnused: GL10?, width: Int, height: Int) {
         glViewport(0, 0, width, height)
+        val w = width.toFloat()
+        val h = height.toFloat()
+        val aspectRatio = if(width > height) w / h else h / w
+
+        if (width > height) {
+            // Landscape
+            orthoM(projectionMatrix, 0, -aspectRatio, aspectRatio, -1f, 1f, -1f, 1f);
+        } else {
+            // Portrait or square
+            orthoM(projectionMatrix, 0, -1f, 1f, -aspectRatio, aspectRatio, -1f, 1f);
+        }
     }
 
     override fun onDrawFrame(glUnused: GL10?) {
         glClear(GL_COLOR_BUFFER_BIT)
+        glUniformMatrix4fv(uMatrixLocation, 1, false, projectionMatrix, 0)
 
         glDrawArrays(GL_TRIANGLE_FAN, 0, 6)
-
         glDrawArrays(GL_LINES, 6, 2)
 
         // Draw the first mallet blue.
@@ -105,6 +120,7 @@ class AirHockeyRenderer(private val context: Context) : Renderer {
     companion object {
         const val A_POSITION = "a_Position"
         const val A_COLOR = "a_Color"
+        const val U_MATRIX = "u_Matrix"
         const val POSITION_COMPONENT_COUNT = 2
         const val COLOR_COMPONENT_COUNT = 3
         const val BYTES_PER_FLOAT = 4

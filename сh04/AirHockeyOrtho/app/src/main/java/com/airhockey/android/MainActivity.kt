@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
+import androidx.compose.material.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,23 +43,18 @@ class MainActivity : ComponentActivity() {
 fun MainContent() {
     val context = LocalContext.current
 
+
     Column(modifier = Modifier.fillMaxSize()) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.DarkGray)
-                .weight(1f)
-                .padding(8.dp),
-            contentAlignment = Alignment.TopCenter
-        ) {
-            Column() {
-                Text(text = stringResource(id = R.string.app_name), fontSize = 32.sp)
+        TopAppBar(
+            title = {
+                Text(text = stringResource(id = R.string.app_name))
             }
-        }
+        )
         AndroidView(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(3f),
+                //.weight(8f)
+            ,
             factory = {
                 GLSurfaceView(it).apply {
                     setEGLContextClientVersion(2)
