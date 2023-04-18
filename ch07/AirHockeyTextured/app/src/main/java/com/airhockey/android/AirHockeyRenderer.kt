@@ -4,10 +4,12 @@ import android.content.Context
 import android.opengl.GLES20.*
 import android.opengl.GLSurfaceView.Renderer
 import android.opengl.Matrix.*
-import com.airhockey.android.util.LoggerConfig
-import com.airhockey.android.util.MatrixHelper
-import com.airhockey.android.util.ShaderHelper
-import com.airhockey.android.util.TextResourceReader
+import com.airhockey.android.Constants.Companion.BYTES_PER_FLOAT
+import com.airhockey.android.objects.Mallet
+import com.airhockey.android.objects.Table
+import com.airhockey.android.programs.ColorShaderProgram
+import com.airhockey.android.programs.TextureShaderProgram
+import com.airhockey.android.util.*
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
@@ -18,6 +20,14 @@ class AirHockeyRenderer(private val context: Context) : Renderer {
     var vertexData: FloatBuffer? = null
     private var projectionMatrix = FloatArray(16)
     private var modelMatrix = FloatArray(16)
+
+    private lateinit var table: Table
+    private lateinit var mallet: Mallet
+
+    private lateinit var textureProgram: TextureShaderProgram
+    private lateinit var colorProgram: ColorShaderProgram
+
+    private var texture = 0
 
     private var program = -1
     // private var uColorLocation = -1
@@ -57,45 +67,24 @@ class AirHockeyRenderer(private val context: Context) : Renderer {
     override fun onSurfaceCreated(glUnused: GL10?, config: EGLConfig?) {
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f)
 
-        val vertexShaderSource = TextResourceReader
-            .readTextFileFromResource(context, R.raw.simple_vertex_shader)
-        val fragmentShaderSource = TextResourceReader
-            .readTextFileFromResource(context, R.raw.simple_fragment_shader)
+        table = Table()
+        mallet = Mallet()
 
-        val vertexShader = ShaderHelper.compileVertexShader(vertexShaderSource)
-        val fragmentShader = ShaderHelper.compileFragmentShader(fragmentShaderSource)
+        textureProgram = TextureShaderProgram(context)
+        colorProgram = ColorShaderProgram(context)
 
-        program = ShaderHelper.linkProgram(vertexShader, fragmentShader)
-
-        if (LoggerConfig.ON) {
-            ShaderHelper.validateProgram(program)
-        }
-
-        glUseProgram(program)
-
-        aPositionLocation = glGetAttribLocation(program, A_POSITION)
-        aColorLocation = glGetAttribLocation(program, A_COLOR)
-        uMatrixLocation = glGetUniformLocation(program, U_MATRIX)
-
-        vertexData!!.position(0)
-        glVertexAttribPointer(aPositionLocation, POSITION_COMPONENT_COUNT, GL_FLOAT,
-            false, STRIDE, vertexData)
-
-        glEnableVertexAttribArray(aPositionLocation)
-
-        vertexData!!.position(POSITION_COMPONENT_COUNT)
-        glVertexAttribPointer(aColorLocation, COLOR_COMPONENT_COUNT, GL_FLOAT,
-            false, STRIDE, vertexData)
-
-        glEnableVertexAttribArray(aColorLocation)
+        texture = TextureHelper.loadTexture(context, R.drawable.air_hockey_surface)
     }
 
     override fun onSurfaceChanged(glUnused: GL10?, width: Int, height: Int) {
         glViewport(0, 0, width, height)
+
         MatrixHelper.perspectiveM(projectionMatrix, 45.toFloat(), width.toFloat() / height.toFloat(), 1f, 10f)
+
         setIdentityM(modelMatrix, 0)
         translateM(modelMatrix, 0, 0f, 0f, -3.0f)
         rotateM(modelMatrix, 0, -60f, 1f, 0f, 0f)
+
         val temp = FloatArray(16)
         multiplyMM(temp, 0, projectionMatrix, 0, modelMatrix, 0)
         System.arraycopy(temp, 0, projectionMatrix, 0, temp.size)
@@ -103,16 +92,18 @@ class AirHockeyRenderer(private val context: Context) : Renderer {
 
     override fun onDrawFrame(glUnused: GL10?) {
         glClear(GL_COLOR_BUFFER_BIT)
-        glUniformMatrix4fv(uMatrixLocation, 1, false, projectionMatrix, 0)
 
-        glDrawArrays(GL_TRIANGLE_FAN, 0, 6)
-        glDrawArrays(GL_LINES, 6, 2)
+        // Draw the table.
+        textureProgram.useProgram();
+        textureProgram.setUniforms(projectionMatrix, texture);
+        table.bindData(textureProgram);
+        table.draw();
 
-        // Draw the first mallet blue.
-        glDrawArrays(GL_POINTS, 8, 1)
-
-        // Draw the second mallet red.
-        glDrawArrays(GL_POINTS, 9, 1)
+        // Draw the mallets.
+        colorProgram.useProgram();
+        colorProgram.setUniforms(projectionMatrix);
+        mallet.bindData(colorProgram);
+        mallet.draw();
     }
 
     companion object {
@@ -121,7 +112,6 @@ class AirHockeyRenderer(private val context: Context) : Renderer {
         const val U_MATRIX = "u_Matrix"
         const val POSITION_COMPONENT_COUNT = 2
         const val COLOR_COMPONENT_COUNT = 3
-        const val BYTES_PER_FLOAT = 4
         const val STRIDE =
             (POSITION_COMPONENT_COUNT + COLOR_COMPONENT_COUNT) * BYTES_PER_FLOAT
     }
