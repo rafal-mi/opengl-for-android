@@ -33,4 +33,8 @@ abstract class ShaderProgram(
         // Set the current OpenGL shader program to this program.
         glUseProgram(program)
     }
+
+    companion object {
+        const val  U_COLOR = "u_Color";
+    }
 }
