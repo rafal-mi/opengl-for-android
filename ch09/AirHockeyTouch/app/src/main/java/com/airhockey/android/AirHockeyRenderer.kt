@@ -245,7 +245,8 @@ class AirHockeyRenderer(private val context: Context) : Renderer {
         mallet.bindData(colorProgram);
         mallet.draw();
 
-        positionObjectInScene(0f, mallet.height / 2f, 0.4f);
+        positionObjectInScene(blueMalletPosition.x, blueMalletPosition.y,
+            blueMalletPosition.z);
         colorProgram.setUniforms(modelViewProjectionMatrix, 0f, 0f, 1f);
         // Note that we don't have to define the object data twice -- we just
         // draw the same mallet again but in a different position and with a
