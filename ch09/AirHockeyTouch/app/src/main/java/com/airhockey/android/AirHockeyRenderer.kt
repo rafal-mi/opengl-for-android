@@ -10,6 +10,10 @@ import com.airhockey.android.objects.Puck
 import com.airhockey.android.objects.Table
 import com.airhockey.android.programs.ColorShaderProgram
 import com.airhockey.android.programs.TextureShaderProgram
+import com.airhockey.android.util.Geometry
+import com.airhockey.android.util.Geometry.*
+import com.airhockey.android.util.Geometry.Point
+import com.airhockey.android.util.Geometry.Ray
 import com.airhockey.android.util.MatrixHelper
 import com.airhockey.android.util.TextureHelper
 import java.nio.ByteBuffer
@@ -26,6 +30,7 @@ class AirHockeyRenderer(private val context: Context) : Renderer {
     private val viewMatrix = FloatArray(16)
     private val viewProjectionMatrix = FloatArray(16)
     private val modelViewProjectionMatrix = FloatArray(16)
+    private val invertedViewProjectionMatrix = FloatArray(16)
 
 
     private lateinit var table: Table
@@ -42,6 +47,19 @@ class AirHockeyRenderer(private val context: Context) : Renderer {
     private var aPositionLocation = -1
     private var aColorLocation = -1
     private var uMatrixLocation = -1
+
+    private var malletPressed = false
+    private lateinit var blueMalletPosition: Point
+
+    private val leftBound = -0.5f
+    private val rightBound = 0.5f
+    private val farBound = -0.8f
+    private val nearBound = 0.8f
+
+    private var previousBlueMalletPosition: Point? = null
+
+    private val puckPosition: Point? = null
+    private var puckVector: Vector? = null
 
     init {
         val tableVerticesWithTriangles = floatArrayOf(
@@ -71,6 +89,113 @@ class AirHockeyRenderer(private val context: Context) : Renderer {
 
         (vertexData as FloatBuffer).put(tableVerticesWithTriangles)
     }
+
+    fun handleTouchPress(normalizedX: Float, normalizedY: Float) {
+        val ray: Ray = convertNormalized2DPointToRay(normalizedX, normalizedY)
+
+        // Now test if this ray intersects with the mallet by creating a
+        // bounding sphere that wraps the mallet.
+        val malletBoundingSphere = Geometry.Sphere(
+            Point(
+                blueMalletPosition.x,
+                blueMalletPosition.y,
+                blueMalletPosition.z
+            ),
+            mallet.height / 2f
+        )
+
+        // If the ray intersects (if the user touched a part of the screen that
+        // intersects the mallet's bounding sphere), then set malletPressed =
+        // true.
+        malletPressed = Geometry.intersects(malletBoundingSphere, ray)
+    }
+
+    private fun convertNormalized2DPointToRay(
+        normalizedX: Float, normalizedY: Float
+    ): Ray {
+        // We'll convert these normalized device coordinates into world-space
+        // coordinates. We'll pick a point on the near and far planes, and draw a
+        // line between them. To do this transform, we need to first multiply by
+        // the inverse matrix, and then we need to undo the perspective divide.
+        val nearPointNdc = floatArrayOf(normalizedX, normalizedY, -1f, 1f)
+        val farPointNdc = floatArrayOf(normalizedX, normalizedY, 1f, 1f)
+        val nearPointWorld = FloatArray(4)
+        val farPointWorld = FloatArray(4)
+        multiplyMV(
+            nearPointWorld, 0, invertedViewProjectionMatrix, 0, nearPointNdc, 0
+        )
+        multiplyMV(
+            farPointWorld, 0, invertedViewProjectionMatrix, 0, farPointNdc, 0
+        )
+
+        // Why are we dividing by W? We multiplied our vector by an inverse
+        // matrix, so the W value that we end up is actually the *inverse* of
+        // what the projection matrix would create. By dividing all 3 components
+        // by W, we effectively undo the hardware perspective divide.
+        divideByW(nearPointWorld)
+        divideByW(farPointWorld)
+
+        // We don't care about the W value anymore, because our points are now
+        // in world coordinates.
+        val nearPointRay = Point(nearPointWorld[0], nearPointWorld[1], nearPointWorld[2])
+        val farPointRay = Point(farPointWorld[0], farPointWorld[1], farPointWorld[2])
+        return Ray(
+            nearPointRay,
+            Geometry.vectorBetween(nearPointRay, farPointRay)
+        )
+    }
+
+    private fun divideByW(vector: FloatArray) {
+        vector[0] /= vector[3]
+        vector[1] /= vector[3]
+        vector[2] /= vector[3]
+    }
+
+    fun handleTouchDrag(normalizedX: Float, normalizedY: Float) {
+        if (malletPressed) {
+            val ray = convertNormalized2DPointToRay(normalizedX, normalizedY)
+            // Define a plane representing our air hockey table.
+            val plane = Geometry.Plane(Geometry.Point(0f, 0f, 0f), Geometry.Vector(0f, 1f, 0f))
+            // Find out where the touched point intersects the plane
+            // representing our table. We'll move the mallet along this plane.
+            val touchedPoint = Geometry.intersectionPoint(ray, plane)
+            // Clamp to bounds
+            previousBlueMalletPosition = blueMalletPosition
+            /*
+            blueMalletPosition =
+                new Point(touchedPoint.x, mallet.height / 2f, touchedPoint.z);
+            */
+            // Clamp to bounds
+            blueMalletPosition = Point(
+                clamp(
+                    touchedPoint!!.x,
+                    leftBound + mallet.radius,
+                    rightBound - mallet.radius
+                ),
+                mallet.height / 2f,
+                clamp(
+                    touchedPoint!!.z,
+                    0f + mallet.radius,
+                    nearBound - mallet.radius
+                )
+            )
+
+            // Now test if mallet has struck the puck.
+            val distance: Float = Geometry.vectorBetween(blueMalletPosition, puckPosition!!).length
+            if (distance < puck.radius + mallet.radius) {
+                // The mallet has struck the puck. Now send the puck flying
+                // based on the mallet velocity.
+                puckVector = Geometry.vectorBetween(
+                    previousBlueMalletPosition!!, blueMalletPosition
+                )
+            }
+        }
+    }
+
+    private fun clamp(value: Float, min: Float, max: Float): Float {
+        return Math.min(max, Math.max(value, min))
+    }
+
 
     override fun onSurfaceCreated(glUnused: GL10?, config: EGLConfig?) {
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f)
