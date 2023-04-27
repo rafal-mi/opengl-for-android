@@ -4,6 +4,8 @@ import android.content.Context
 import android.opengl.GLES20.*
 import android.opengl.GLSurfaceView.Renderer
 import android.opengl.Matrix.*
+import android.util.Log
+import com.airhockey.android.App.Companion.TAG
 import com.airhockey.android.Constants.Companion.BYTES_PER_FLOAT
 import com.airhockey.android.objects.Mallet
 import com.airhockey.android.objects.Puck
@@ -12,8 +14,6 @@ import com.airhockey.android.programs.ColorShaderProgram
 import com.airhockey.android.programs.TextureShaderProgram
 import com.airhockey.android.util.Geometry
 import com.airhockey.android.util.Geometry.*
-import com.airhockey.android.util.Geometry.Point
-import com.airhockey.android.util.Geometry.Ray
 import com.airhockey.android.util.MatrixHelper
 import com.airhockey.android.util.TextureHelper
 import java.nio.ByteBuffer
@@ -58,7 +58,7 @@ class AirHockeyRenderer(private val context: Context) : Renderer {
 
     private var previousBlueMalletPosition: Point? = null
 
-    private val puckPosition: Point? = null
+    private var puckPosition: Point? = null
     private var puckVector: Vector? = null
 
     init {
@@ -95,7 +95,7 @@ class AirHockeyRenderer(private val context: Context) : Renderer {
 
         // Now test if this ray intersects with the mallet by creating a
         // bounding sphere that wraps the mallet.
-        val malletBoundingSphere = Geometry.Sphere(
+        val malletBoundingSphere = Sphere(
             Point(
                 blueMalletPosition.x,
                 blueMalletPosition.y,
@@ -108,6 +108,8 @@ class AirHockeyRenderer(private val context: Context) : Renderer {
         // intersects the mallet's bounding sphere), then set malletPressed =
         // true.
         malletPressed = Geometry.intersects(malletBoundingSphere, ray)
+
+        Log.d(TAG, "Mallet pressed? $malletPressed")
     }
 
     private fun convertNormalized2DPointToRay(
@@ -204,6 +206,11 @@ class AirHockeyRenderer(private val context: Context) : Renderer {
         mallet = Mallet(0.08f, 0.15f, 32)
         puck = Puck(0.06f, 0.02f, 32)
 
+        blueMalletPosition = Point(0f, mallet.height / 2f, 0.4f)
+        puckPosition = Point(0f, puck.height / 2f, 0f)
+        puckVector = Vector(0f, 0f, 0f)
+
+
         textureProgram = TextureShaderProgram(context)
         colorProgram = ColorShaderProgram(context)
 
@@ -222,6 +229,7 @@ class AirHockeyRenderer(private val context: Context) : Renderer {
 
         // Multiply the view and projection matrices together.
         multiplyMM(viewProjectionMatrix, 0, projectionMatrix, 0, viewMatrix, 0);
+        invertM(invertedViewProjectionMatrix, 0, viewProjectionMatrix, 0);
 
         // Draw the table.
         positionTableInScene();

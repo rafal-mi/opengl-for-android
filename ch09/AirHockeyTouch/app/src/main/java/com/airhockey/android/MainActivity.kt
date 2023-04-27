@@ -63,15 +63,15 @@ fun MainContent() {
                         if (event.action == MotionEvent.ACTION_DOWN) {
                             v.performClick()
                             this.queueEvent {
-//                                airHockeyRenderer.handleTouchPress(
-//                                    normalizedX, normalizedY
-//                                )
+                                airHockeyRenderer.handleTouchPress(
+                                    normalizedX, normalizedY
+                                )
                             }
                         } else if (event.action == MotionEvent.ACTION_MOVE) {
                             this.queueEvent {
-//                                airHockeyRenderer.handleTouchDrag(
-//                                    normalizedX, normalizedY
-//                                )
+                                airHockeyRenderer.handleTouchDrag(
+                                    normalizedX, normalizedY
+                                )
                             }
                         }
                         true
