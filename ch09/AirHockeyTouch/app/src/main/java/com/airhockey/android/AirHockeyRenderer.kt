@@ -210,7 +210,6 @@ class AirHockeyRenderer(private val context: Context) : Renderer {
         puckPosition = Point(0f, puck.height / 2f, 0f)
         puckVector = Vector(0f, 0f, 0f)
 
-
         textureProgram = TextureShaderProgram(context)
         colorProgram = ColorShaderProgram(context)
 
@@ -226,6 +225,36 @@ class AirHockeyRenderer(private val context: Context) : Renderer {
 
     override fun onDrawFrame(glUnused: GL10?) {
         glClear(GL_COLOR_BUFFER_BIT)
+
+        // Translate the puck by its vector
+        puckPosition = puckPosition!!.translate(puckVector!!);
+
+        // If the puck struck a side, reflect it off that side.
+        // If the puck struck a side, reflect it off that side.
+        if (puckPosition!!.x < leftBound + puck.radius
+            || puckPosition!!.x > rightBound - puck.radius
+        ) {
+            puckVector = Vector(-puckVector!!.x, puckVector!!.y, puckVector!!.z)
+            puckVector = puckVector!! * 0.9f
+        }
+        if (puckPosition!!.z < farBound + puck.radius
+            || puckPosition!!.z > nearBound - puck.radius
+        ) {
+            puckVector = Vector(puckVector!!.x, puckVector!!.y, -puckVector!!.z)
+            puckVector = puckVector!! * 0.9f
+        }
+        // Clamp the puck position.
+        // Clamp the puck position.
+        puckPosition = Point(
+            clamp(puckPosition!!.x, leftBound + puck.radius, rightBound - puck.radius),
+            puckPosition!!.y,
+            clamp(puckPosition!!.z, farBound + puck.radius, nearBound - puck.radius)
+        )
+
+        // Friction factor
+
+        // Friction factor
+        puckVector = puckVector!! * 0.99f
 
         // Multiply the view and projection matrices together.
         multiplyMM(viewProjectionMatrix, 0, projectionMatrix, 0, viewMatrix, 0);
@@ -254,7 +283,7 @@ class AirHockeyRenderer(private val context: Context) : Renderer {
         mallet.draw();
 
         // Draw the puck.
-        positionObjectInScene(0f, puck.height / 2f, 0f);
+        positionObjectInScene(puckPosition!!.x, puckPosition!!.y, puckPosition!!.z);
         colorProgram.setUniforms(modelViewProjectionMatrix, 0.8f, 0.8f, 1f);
         puck.bindData(colorProgram);
         puck.draw();
