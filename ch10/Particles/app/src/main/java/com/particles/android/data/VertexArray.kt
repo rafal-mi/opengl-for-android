@@ -22,4 +22,16 @@ class VertexArray(
         glEnableVertexAttribArray(attributeLocation);
         floatBuffer.position(0);
     }
+
+    /**
+     * Updates the float buffer with the specified vertex data, assuming that
+     * the vertex data and the float buffer are the same size.
+     */
+    fun updateBuffer(vertexData: FloatArray?, start: Int, count: Int) {
+        floatBuffer.position(start)
+        floatBuffer.put(vertexData, start, count)
+        floatBuffer.position(0)
+    }
+
+
 }
