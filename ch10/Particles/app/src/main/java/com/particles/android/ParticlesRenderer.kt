@@ -26,6 +26,9 @@ class ParticlesRenderer(private val context: Context) : Renderer {
     var blueParticleShooter: ParticleShooter? = null
     var globalStartTime: Long = 0
 
+    val angleVarianceInDegrees = 5f
+    val speedVariance = 1f
+
     override fun onSurfaceCreated(glUnused: GL10?, config: EGLConfig?) {
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f)
 
@@ -47,19 +50,25 @@ class ParticlesRenderer(private val context: Context) : Renderer {
         redParticleShooter = ParticleShooter(
             Point(-1f, 0f, 0f),
             particleDirection,
-            Color.rgb(255, 50, 5)
+            Color.rgb(255, 50, 5),
+            angleVarianceInDegrees,
+            speedVariance
         )
 
         greenParticleShooter = ParticleShooter(
             Point(0f, 0f, 0f),
             particleDirection,
-            Color.rgb(25, 255, 25)
+            Color.rgb(25, 255, 25),
+            angleVarianceInDegrees,
+            speedVariance
         )
 
         blueParticleShooter = ParticleShooter(
             Point(1f, 0f, 0f),
             particleDirection,
-            Color.rgb(5, 50, 255)
+            Color.rgb(5, 50, 255),
+            angleVarianceInDegrees,
+            speedVariance
         )
     }
 
