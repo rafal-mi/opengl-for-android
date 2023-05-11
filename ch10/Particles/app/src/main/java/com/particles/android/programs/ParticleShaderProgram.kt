@@ -32,7 +32,7 @@ class ParticleShaderProgram(context: Context) : ShaderProgram(context, R.raw.par
             glGetAttribLocation(program, A_PARTICLE_START_TIME);
     }
 
-    fun setUniforms(matrix: FloatArray?, elapsedTime: Float, textureId: Int) {
+    fun setUniforms(matrix: FloatArray?, elapsedTime: Float) {
         glUniformMatrix4fv(uMatrixLocation, 1, false, matrix, 0)
         glUniform1f(uTimeLocation, elapsedTime)
     }
