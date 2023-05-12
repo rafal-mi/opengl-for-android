@@ -33,8 +33,6 @@ class ParticlesRenderer(private val context: Context) : Renderer {
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f)
 
         // Enable additive blending
-
-        // Enable additive blending
         glEnable(GL_BLEND)
         glBlendFunc(GL_ONE, GL_ONE)
 
