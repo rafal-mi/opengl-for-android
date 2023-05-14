@@ -11,6 +11,7 @@ import com.particles.android.programs.ParticleShaderProgram
 import com.particles.android.util.Geometry
 import com.particles.android.util.Geometry.Point
 import com.particles.android.util.MatrixHelper
+import com.particles.android.util.TextureHelper
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
@@ -25,6 +26,7 @@ class ParticlesRenderer(private val context: Context) : Renderer {
     var greenParticleShooter: ParticleShooter? = null
     var blueParticleShooter: ParticleShooter? = null
     var globalStartTime: Long = 0
+    private var texture: Int = 0
 
     val angleVarianceInDegrees = 5f
     val speedVariance = 1f
@@ -68,6 +70,8 @@ class ParticlesRenderer(private val context: Context) : Renderer {
             angleVarianceInDegrees,
             speedVariance
         )
+
+        texture = TextureHelper.loadTexture(context, R.drawable.particle_texture)
     }
 
     override fun onSurfaceChanged(glUnused: GL10?, width: Int, height: Int) {
@@ -94,7 +98,7 @@ class ParticlesRenderer(private val context: Context) : Renderer {
         blueParticleShooter!!.addParticles(particleSystem!!, currentTime, 5)
 
         particleProgram!!.useProgram();
-        particleProgram!!.setUniforms(viewProjectionMatrix, currentTime);
+        particleProgram!!.setUniforms(viewProjectionMatrix, currentTime, texture);
         particleSystem!!.bindData(particleProgram!!);
         particleSystem!!.draw();
     }

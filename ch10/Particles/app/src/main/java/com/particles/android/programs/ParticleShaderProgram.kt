@@ -16,7 +16,7 @@ class ParticleShaderProgram(context: Context) : ShaderProgram(context, R.raw.par
     var aColorLocation = 0
     var aDirectionVectorLocation = 0
     var aParticleStartTimeLocation = 0
-    private var uTextureUnitLocation = 0
+    var uTextureUnitLocation = 0
 
     init {
         // Retrieve uniform locations for the shader program.
@@ -32,9 +32,13 @@ class ParticleShaderProgram(context: Context) : ShaderProgram(context, R.raw.par
             glGetAttribLocation(program, A_PARTICLE_START_TIME);
     }
 
-    fun setUniforms(matrix: FloatArray?, elapsedTime: Float) {
+    fun setUniforms(matrix: FloatArray?, elapsedTime: Float, textureId: Int) {
         glUniformMatrix4fv(uMatrixLocation, 1, false, matrix, 0)
         glUniform1f(uTimeLocation, elapsedTime)
+
+        glActiveTexture(GL_TEXTURE0)
+        glBindTexture(GL_TEXTURE_2D, textureId)
+        glUniform1i(uTextureUnitLocation, 0)
     }
 
 
