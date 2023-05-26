@@ -2,8 +2,10 @@ package com.particles.android.objects
 
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.opengl.GLES20.*
 import com.particles.android.data.IndexBuffer
 import com.particles.android.data.VertexBuffer
+import com.particles.android.programs.HeightmapShaderProgram
 
 
 class Heightmap(bitmap: Bitmap) {
@@ -12,6 +14,9 @@ class Heightmap(bitmap: Bitmap) {
     var numElements = 0
     var vertexBuffer: VertexBuffer? = null
     var indexBuffer: IndexBuffer? = null
+
+    var aPositionLocation = 0
+    var aNormalLocation = 0
 
     init {
         width = bitmap.width;
@@ -41,7 +46,7 @@ class Heightmap(bitmap: Bitmap) {
                 // assume the heightmap is grayscale, and use the value of the
                 // red color to determine the height.
                 val xPosition = col.toFloat() / (width - 1).toFloat() - 0.5f
-                val yPosition = Color.red(pixels[row * height + col]) as Float / 255f
+                val yPosition = Color.red(pixels[row * height + col]).toFloat() / 255f
                 val zPosition = row.toFloat() / (height - 1).toFloat() - 0.5f
                 heightmapVertices[offset++] = xPosition
                 heightmapVertices[offset++] = yPosition
@@ -75,6 +80,22 @@ class Heightmap(bitmap: Bitmap) {
         }
         return indexData
     }
+
+    fun bindData(heightmapProgram: HeightmapShaderProgram) {
+        vertexBuffer!!.setVertexAttribPointer(
+            0,
+            heightmapProgram.aPositionLocation,
+            POSITION_COMPONENT_COUNT,
+            0
+        )
+    }
+
+    fun draw() {
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer!!.bufferId)
+        glDrawElements(GL_TRIANGLES, numElements, GL_UNSIGNED_SHORT, 0)
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
+    }
+
 
     companion object {
         const val POSITION_COMPONENT_COUNT = 3

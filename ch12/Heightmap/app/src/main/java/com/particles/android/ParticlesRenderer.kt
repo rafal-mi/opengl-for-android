@@ -2,23 +2,19 @@ package com.particles.android
 
 import android.content.Context
 import android.graphics.Color
-import android.opengl.GLES20.GL_BLEND
-import android.opengl.GLES20.GL_COLOR_BUFFER_BIT
-import android.opengl.GLES20.GL_ONE
-import android.opengl.GLES20.glBlendFunc
-import android.opengl.GLES20.glClear
-import android.opengl.GLES20.glClearColor
-import android.opengl.GLES20.glDisable
-import android.opengl.GLES20.glEnable
-import android.opengl.GLES20.glViewport
+import android.graphics.drawable.BitmapDrawable
+import android.opengl.GLES20.*
 import android.opengl.GLSurfaceView.Renderer
 import android.opengl.Matrix.multiplyMM
 import android.opengl.Matrix.rotateM
+import android.opengl.Matrix.scaleM
 import android.opengl.Matrix.setIdentityM
 import android.opengl.Matrix.translateM
+import com.particles.android.objects.Heightmap
 import com.particles.android.objects.ParticleShooter
 import com.particles.android.objects.ParticleSystem
 import com.particles.android.objects.Skybox
+import com.particles.android.programs.HeightmapShaderProgram
 import com.particles.android.programs.ParticleShaderProgram
 import com.particles.android.programs.SkyboxShaderProgram
 import com.particles.android.util.Geometry
@@ -30,9 +26,14 @@ import javax.microedition.khronos.opengles.GL10
 
 
 class ParticlesRenderer(private val context: Context) : Renderer {
-    private val projectionMatrix = FloatArray(16)
+    private val modelMatrix = FloatArray(16)
     private val viewMatrix = FloatArray(16)
+    private val viewMatrixForSkybox = FloatArray(16)
+    private val projectionMatrix = FloatArray(16)
     private val viewProjectionMatrix = FloatArray(16)
+
+    private val tempMatrix = FloatArray(16)
+    private val modelViewProjectionMatrix = FloatArray(16)
 
     private var skyboxProgram: SkyboxShaderProgram? = null
     private var skybox: Skybox? = null
@@ -53,8 +54,17 @@ class ParticlesRenderer(private val context: Context) : Renderer {
     var xRotation = 0f
     var yRotation = 0f
 
+    private var heightmapProgram: HeightmapShaderProgram? = null
+    private var heightmap: Heightmap? = null
+
     override fun onSurfaceCreated(glUnused: GL10?, config: EGLConfig?) {
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f)
+
+        heightmapProgram = HeightmapShaderProgram(context)
+        heightmap = Heightmap(
+            (context.resources
+                .getDrawable(R.drawable.heightmap) as BitmapDrawable).bitmap
+        )
 
         skyboxProgram = SkyboxShaderProgram(context)
         skybox = Skybox()
@@ -115,31 +125,54 @@ class ParticlesRenderer(private val context: Context) : Renderer {
         } else if (yRotation > 90) {
             yRotation = 90f
         }
+        updateViewMatrices();
+    }
+
+    private fun updateViewMatrices() {
+        setIdentityM(viewMatrix, 0)
+        rotateM(viewMatrix, 0, -yRotation, 1f, 0f, 0f)
+        rotateM(viewMatrix, 0, -xRotation, 0f, 1f, 0f)
+        System.arraycopy(viewMatrix, 0, viewMatrixForSkybox, 0, viewMatrix.size)
+
+        // We want the translation to apply to the regular view matrix, and not
+        // the skybox.
+        translateM(viewMatrix, 0, 0f, -1.5f, -5f)
     }
 
     override fun onSurfaceChanged(glUnused: GL10?, width: Int, height: Int) {
         glViewport(0, 0, width, height)
         MatrixHelper.perspectiveM(
             projectionMatrix, 45f, width.toFloat()
-                    / height.toFloat(), 1f, 10f
+                    / height.toFloat(), 1f, 100f
         )
+        updateViewMatrices()
     }
 
     override fun onDrawFrame(glUnused: GL10?) {
         glClear(GL_COLOR_BUFFER_BIT)
 
+        drawHeightmap()
         drawSkybox();
         drawParticles();
     }
 
+    private fun drawHeightmap() {
+        setIdentityM(modelMatrix, 0)
+        scaleM(modelMatrix, 0, 100f, 10f, 100f)
+        updateMvpMatrix()
+        heightmapProgram!!.useProgram()
+        heightmapProgram!!.setUniforms(modelViewProjectionMatrix)
+        heightmap!!.bindData(heightmapProgram!!)
+        heightmap!!.draw()
+    }
+
+
     private fun drawSkybox() {
-        setIdentityM(viewMatrix, 0);
-        rotateM(viewMatrix, 0, -yRotation, 1f, 0f, 0f);
-        rotateM(viewMatrix, 0, -xRotation, 0f, 1f, 0f);
-        // translateM(viewMatrix, 0, 0f, -1.5f, -5f);
-        multiplyMM(viewProjectionMatrix, 0, projectionMatrix, 0, viewMatrix, 0);
+        setIdentityM(modelMatrix, 0);
+        updateMvpMatrixForSkybox();
+
         skyboxProgram!!.useProgram();
-        skyboxProgram!!.setUniforms(viewProjectionMatrix, skyboxTexture);
+        skyboxProgram!!.setUniforms(modelViewProjectionMatrix, skyboxTexture);
         skybox!!.bindData(skyboxProgram!!)
         skybox!!.draw();
     }
@@ -150,22 +183,28 @@ class ParticlesRenderer(private val context: Context) : Renderer {
         greenParticleShooter!!.addParticles(particleSystem!!, currentTime, 1)
         blueParticleShooter!!.addParticles(particleSystem!!, currentTime, 1)
 
-        setIdentityM(viewMatrix, 0)
-        rotateM(viewMatrix, 0, -yRotation, 1f, 0f, 0f)
-        rotateM(viewMatrix, 0, -xRotation, 0f, 1f, 0f)
-        translateM(viewMatrix, 0, 0f, -1.5f, -5f)
-        multiplyMM(viewProjectionMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
+        setIdentityM(modelMatrix, 0);
+        updateMvpMatrix();
 
         glEnable(GL_BLEND)
         glBlendFunc(GL_ONE, GL_ONE)
 
         particleProgram!!.useProgram()
-        particleProgram!!.setUniforms(viewProjectionMatrix, currentTime, particleTexture)
+        particleProgram!!.setUniforms(modelViewProjectionMatrix, currentTime, particleTexture)
         particleSystem!!.bindData(particleProgram!!)
         particleSystem!!.draw()
 
         glDisable(GL_BLEND)
     }
 
+    private fun updateMvpMatrix() {
+        multiplyMM(tempMatrix, 0, viewMatrix, 0, modelMatrix, 0)
+        multiplyMM(modelViewProjectionMatrix, 0, projectionMatrix, 0, tempMatrix, 0)
+    }
+
+    private fun updateMvpMatrixForSkybox() {
+        multiplyMM(tempMatrix, 0, viewMatrixForSkybox, 0, modelMatrix, 0)
+        multiplyMM(modelViewProjectionMatrix, 0, projectionMatrix, 0, tempMatrix, 0)
+    }
 
 }

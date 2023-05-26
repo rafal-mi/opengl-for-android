@@ -138,6 +138,7 @@ class ParticlesRenderer(private val context: Context) : Renderer {
         rotateM(viewMatrix, 0, -xRotation, 0f, 1f, 0f);
         // translateM(viewMatrix, 0, 0f, -1.5f, -5f);
         multiplyMM(viewProjectionMatrix, 0, projectionMatrix, 0, viewMatrix, 0);
+
         skyboxProgram!!.useProgram();
         skyboxProgram!!.setUniforms(viewProjectionMatrix, skyboxTexture);
         skybox!!.bindData(skyboxProgram!!)
