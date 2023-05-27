@@ -19,6 +19,7 @@ import com.particles.android.programs.ParticleShaderProgram
 import com.particles.android.programs.SkyboxShaderProgram
 import com.particles.android.util.Geometry
 import com.particles.android.util.Geometry.Point
+import com.particles.android.util.Geometry.Vector
 import com.particles.android.util.MatrixHelper
 import com.particles.android.util.TextureHelper
 import javax.microedition.khronos.egl.EGLConfig
@@ -56,6 +57,8 @@ class ParticlesRenderer(private val context: Context) : Renderer {
 
     private var heightmapProgram: HeightmapShaderProgram? = null
     private var heightmap: Heightmap? = null
+
+    private val vectorToLight = Vector(0.61f, 0.64f, -0.47f).normalize()
 
     override fun onSurfaceCreated(glUnused: GL10?, config: EGLConfig?) {
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f)
@@ -161,7 +164,7 @@ class ParticlesRenderer(private val context: Context) : Renderer {
         scaleM(modelMatrix, 0, 100f, 10f, 100f)
         updateMvpMatrix()
         heightmapProgram!!.useProgram()
-        heightmapProgram!!.setUniforms(modelViewProjectionMatrix)
+        heightmapProgram!!.setUniforms(modelViewProjectionMatrix, vectorToLight)
         heightmap!!.bindData(heightmapProgram!!)
         heightmap!!.draw()
     }

@@ -36,6 +36,8 @@ sealed class Geometry {
         operator fun times(f: Float): Vector =
             Vector(x * f, y * f, z * f)
 
+        fun normalize() =
+            this * (1f / length)
     }
 
     data class Circle(
