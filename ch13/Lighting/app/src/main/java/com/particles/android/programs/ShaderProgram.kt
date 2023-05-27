@@ -11,19 +11,6 @@ abstract class ShaderProgram(
     vertexShaderResourceId: Int,
     fragmentShaderResourceId: Int
 ) {
-    // Uniform constants
-    protected val U_MATRIX = "u_Matrix"
-    protected val U_TEXTURE_UNIT = "u_TextureUnit"
-    protected val U_TIME = "u_Time"
-
-    // Attribute constants
-    protected val A_POSITION = "a_Position"
-    protected val A_COLOR = "a_Color"
-    protected val A_TEXTURE_COORDINATES = "a_TextureCoordinates"
-
-    protected val A_DIRECTION_VECTOR = "a_DirectionVector"
-    protected val A_PARTICLE_START_TIME = "a_ParticleStartTime"
-
     // Shader program
     var program = ShaderHelper.buildProgram(
         TextResourceReader.readTextFileFromResource(
@@ -40,7 +27,19 @@ abstract class ShaderProgram(
     }
 
     companion object {
-        const val  U_COLOR = "u_Color";
+        const val U_MATRIX = "u_Matrix"
+        const val U_TEXTURE_UNIT = "u_TextureUnit"
+        const val U_TIME = "u_Time"
+
+        // Attribute constants
+        const val A_POSITION = "a_Position"
+        const val A_COLOR = "a_Color"
+        const val A_TEXTURE_COORDINATES = "a_TextureCoordinates"
+
+        const val A_DIRECTION_VECTOR = "a_DirectionVector"
+        const val A_PARTICLE_START_TIME = "a_ParticleStartTime"
+
+        const val U_COLOR = "u_Color";
         const val U_VECTOR_TO_LIGHT = "u_VectorToLight"
         const val A_NORMAL = "a_Normal"
         const val U_MV_MATRIX = "u_MVMatrix"
