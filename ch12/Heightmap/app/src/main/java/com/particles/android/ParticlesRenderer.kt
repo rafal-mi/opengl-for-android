@@ -151,8 +151,8 @@ class ParticlesRenderer(private val context: Context) : Renderer {
     override fun onDrawFrame(glUnused: GL10?) {
         glClear(GL_COLOR_BUFFER_BIT)
 
-        drawHeightmap()
         drawSkybox();
+        drawHeightmap()
         drawParticles();
     }
 
@@ -166,15 +166,16 @@ class ParticlesRenderer(private val context: Context) : Renderer {
         heightmap!!.draw()
     }
 
-
     private fun drawSkybox() {
         setIdentityM(modelMatrix, 0);
         updateMvpMatrixForSkybox();
 
+        glDepthFunc(GL_LEQUAL);
         skyboxProgram!!.useProgram();
         skyboxProgram!!.setUniforms(modelViewProjectionMatrix, skyboxTexture);
         skybox!!.bindData(skyboxProgram!!)
         skybox!!.draw();
+        glDepthFunc(GL_LESS);
     }
 
     private fun drawParticles() {
@@ -189,10 +190,12 @@ class ParticlesRenderer(private val context: Context) : Renderer {
         glEnable(GL_BLEND)
         glBlendFunc(GL_ONE, GL_ONE)
 
+        glDepthMask(false);
         particleProgram!!.useProgram()
         particleProgram!!.setUniforms(modelViewProjectionMatrix, currentTime, particleTexture)
         particleSystem!!.bindData(particleProgram!!)
         particleSystem!!.draw()
+        glDepthMask(true);
 
         glDisable(GL_BLEND)
     }
